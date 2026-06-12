@@ -1,0 +1,343 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "Live Sensor Readings",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": 300000,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Temperature" },
+            "properties": [
+              { "id": "unit", "value": "celsius" },
+              { "id": "color", "value": { "fixedColor": "#ff7b4f", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Pressure" },
+            "properties": [
+              { "id": "unit", "value": "pressurehpa" },
+              { "id": "color", "value": { "fixedColor": "#4f9eff", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Light" },
+            "properties": [
+              { "id": "unit", "value": "lux" },
+              { "id": "color", "value": { "fixedColor": "#f7e04a", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Humidity" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "color", "value": { "fixedColor": "#a78bfa", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "legend": { "calcs": ["mean", "lastNotNull", "max", "min"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"sensor-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_reading\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"mean\")",
+          "refId": "A"
+        }
+      ],
+      "title": "All Sensors — Time Series",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "(.*)",
+            "rename": "${1}"
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "id": 101,
+      "panels": [],
+      "title": "Per-Sensor Gauges",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 30 },
+            { "color": "red", "value": 35 }
+          ]},
+          "unit": "celsius"
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 14 },
+      "id": 2,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"sensor-data\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_reading\")\n  |> filter(fn: (r) => r[\"sensor\"] == \"temperature\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Temperature",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1020 },
+            { "color": "red", "value": 1025 }
+          ]},
+          "unit": "pressurehpa"
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 14 },
+      "id": 3,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"sensor-data\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_reading\")\n  |> filter(fn: (r) => r[\"sensor\"] == \"pressure\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Pressure",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 800 },
+            { "color": "red", "value": 900 }
+          ]},
+          "unit": "lux"
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 14 },
+      "id": 4,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"sensor-data\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_reading\")\n  |> filter(fn: (r) => r[\"sensor\"] == \"light\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Light",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 70 },
+            { "color": "red", "value": 75 }
+          ]},
+          "unit": "percent"
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 14 },
+      "id": 5,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"sensor-data\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_reading\")\n  |> filter(fn: (r) => r[\"sensor\"] == \"humidity\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Humidity",
+      "type": "gauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "id": 102,
+      "panels": [],
+      "title": "Statistics (Last 24h)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "temperature" }, "properties": [{ "id": "unit", "value": "celsius" }] },
+          { "matcher": { "id": "byName", "options": "pressure" }, "properties": [{ "id": "unit", "value": "pressurehpa" }] },
+          { "matcher": { "id": "byName", "options": "light" }, "properties": [{ "id": "unit", "value": "lux" }] },
+          { "matcher": { "id": "byName", "options": "humidity" }, "properties": [{ "id": "unit", "value": "percent" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 23 },
+      "id": 6,
+      "options": {
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true,
+        "sortBy": [{ "desc": false, "displayName": "sensor" }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"sensor-data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_reading\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> group(columns: [\"sensor\"])\n  |> aggregateWindow(every: 24h, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) }))",
+          "refId": "avg"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"sensor-data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_reading\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> group(columns: [\"sensor\"])\n  |> min()",
+          "refId": "min"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"sensor-data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_reading\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> group(columns: [\"sensor\"])\n  |> max()",
+          "refId": "max"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"sensor-data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_reading\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> group(columns: [\"sensor\"])\n  |> count()",
+          "refId": "count"
+        }
+      ],
+      "title": "Sensor Statistics Table",
+      "type": "table"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["iotlab", "sensors"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "InfluxDB", "value": "InfluxDB" },
+        "hide": 2,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "DS_INFLUXDB",
+        "options": [],
+        "query": "influxdb",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "IoTLab · Sensor Dashboard",
+  "uid": "iotlab-sensors",
+  "version": 1,
+  "weekStart": ""
+}

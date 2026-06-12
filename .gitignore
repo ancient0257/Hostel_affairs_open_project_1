@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+*.egg
+venv/
+.venv/
+env/
+
+# Node
+node_modules/
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Mosquitto data/logs
+mosquitto/data/
+mosquitto/log/
+
+# Database
+*.db
+
+# Environment
+.env

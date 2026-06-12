@@ -1,0 +1,105 @@
+version: "3.9"
+
+services:
+
+  # ── MQTT Broker ──────────────────────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: iotlab-broker
+    ports:
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # WebSocket (for browser clients)
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    restart: unless-stopped
+
+  # ── Sensor Simulator (Python) ─────────────────────────────
+  publisher:
+    build: ./backend
+    container_name: iotlab-publisher
+    command: python sensor_publisher.py
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      PUBLISH_INTERVAL: 1.0
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  # ── FastAPI Backend ───────────────────────────────────────
+  api:
+    build: ./backend
+    container_name: iotlab-api
+    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      DB_PATH: /data/lab.db
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: iotlab-token-change-me
+      INFLUXDB_ORG: iotlab-org
+      INFLUXDB_BUCKET: sensor-data
+    volumes:
+      - iotlab-db:/data
+    depends_on:
+      - mosquitto
+      - influxdb
+    restart: unless-stopped
+
+  # ── InfluxDB ──────────────────────────────────────────────
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: iotlab-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: iotlab
+      DOCKER_INFLUXDB_INIT_PASSWORD: iotlab-pass
+      DOCKER_INFLUXDB_INIT_ORG: iotlab-org
+      DOCKER_INFLUXDB_INIT_BUCKET: sensor-data
+      DOCKER_INFLUXDB_INIT_RETENTION: 30d
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: iotlab-token-change-me
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    restart: unless-stopped
+
+  # ── Grafana ──────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4
+    container_name: iotlab-grafana
+    ports:
+      - "3030:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: iotlab
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+
+  # ── React Frontend ────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: iotlab-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_MQTT_URL: ws://localhost:9001
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  iotlab-db:
+  influxdb-data:
+  grafana-data:
